@@ -533,10 +533,34 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
       const geom: ReactTypes.CSSProperties = { left: sidebarRight, top: 0, width: mainW, height: viewport.height };
       const overlayProps = {
         className: CLS + "-overlay",
-        style: { ...geom, ...overlayBase, "--dsws-divider-width": state.dividerWidth + "px", "--dsws-divider-color": state.dividerColor || undefined } as ReactTypes.CSSProperties,
+        style: { ...geom, ...overlayBase, "--dsws-divider-width": (state.fullscreenDividers ? state.dividerWidth : 0) + "px", "--dsws-divider-color": state.dividerColor || undefined } as ReactTypes.CSSProperties,
         "data-dsh-workspace-sidebar": "",
         "data-mode": mode
       };
+
+      // 无分割线 → 单画布模式：整块 = center 区（顶部 TabBar + 一个「+」），不渲染左/右/底与分隔条
+      if (!state.fullscreenDividers) {
+        return React.createElement(
+          DndWorkspace,
+          null,
+          React.createElement(
+            "div",
+            overlayProps,
+            React.createElement(Toolbar, { panels: panels, mode: "fullscreen" }),
+            React.createElement(
+              "div",
+              { className: CLS + "-body" },
+              React.createElement(
+                "div",
+                { className: CLS + "-row" },
+                React.createElement(RegionPane, { region: "center", mode: mode, width: null, state: state, chrome: chrome })
+              )
+            ),
+            React.createElement(DragHint, {})
+          )
+        );
+      }
+
       return React.createElement(
         DndWorkspace,
         null,

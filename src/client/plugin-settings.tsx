@@ -183,10 +183,12 @@ export function createPluginSettingsSection(deps: PluginSettingsSectionDeps): {
         )
       );
     });
-    if (widgetSettingsCards.length === 0) return null;
+    // 插件设置框始终显示：有声明 settings 的插件 → 卡片网格；无 → 空线框 + 占位提示
     return React.createElement("div", { style: boxStyle },
       React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "var(--dsw-alias-label-primary,#333)" } }, "插件设置"),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, alignItems: "start" } }, widgetSettingsCards)
+      widgetSettingsCards.length === 0
+        ? React.createElement("div", { style: { fontSize: 12, color: "var(--dsw-alias-label-tertiary,#999)", padding: "4px 0" } }, "暂无插件设置")
+        : React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, alignItems: "start" } }, widgetSettingsCards)
     );
   }
 

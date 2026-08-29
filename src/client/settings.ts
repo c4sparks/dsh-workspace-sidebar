@@ -57,6 +57,14 @@ interface SettingsField {
 /** 布局配置项 schema（L1；新增布局设置项 = 在此加一行 + 同步 LayoutControl/store）。 */
 const SETTINGS_FIELDS: SettingsField[] = [
   {
+    key: "fullscreenDividers",
+    label: "全屏分割线",
+    desc: "大屏（全屏）页面是否显示区域分割线（默认关；停靠面板不受影响）",
+    type: "switch",
+    read: function (s) { return s.fullscreenDividers; },
+    write: function (l, v) { l.setFullscreenDividers(v === true); }
+  },
+  {
     key: "dockMaxRatio",
     label: "停靠最大占比（%）",
     desc: "左/右/底停靠面板最大可拖到主内容区的比例（10–100）",
@@ -171,8 +179,13 @@ export function createSettingsSection(deps: SettingsSectionDeps): {
     const resetHoverState = React.useState(false);
     const resetHover = resetHoverState[0];
     const setResetHover = resetHoverState[1];
-    const resetLayout = function () {
-      if (!window.confirm("此操作将把所有设置项恢复为默认值，您当前的自定义配置将会丢失。确定要继续吗？")) return;
+    // 自定义确认弹窗（替代 window.confirm 原生网页弹框）
+    const confirmOpenState = React.useState(false);
+    const confirmOpen = confirmOpenState[0];
+    const setConfirmOpen = confirmOpenState[1];
+    const openResetConfirm = function () { setConfirmOpen(true); };
+    const doReset = function () {
+      setConfirmOpen(false);
       service.layout.reset();
       setNotice("已恢复默认值");
     };
@@ -275,34 +288,93 @@ export function createSettingsSection(deps: SettingsSectionDeps): {
     };
     return React.createElement(
       "div",
-      { "data-dsh-workspace-settings-section": "", style: { display: "flex", flexDirection: "column", gap: 12, maxWidth: 520, padding: "4px 0", fontFamily: "system-ui, sans-serif" } },
-      // 工作台标题（纯文字，不带图标）
-      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
-        React.createElement("span", { style: { fontSize: 14, fontWeight: 600, color: "var(--dsw-alias-label-primary,#333)" } }, "工作台")
+      { "data-dsh-workspace-settings-section": "", style: { display: "flex", flexDirection: "column", gap: 16, maxWidth: 520, padding: "4px 0", fontFamily: "system-ui, sans-serif" } },
+      // 标题行：LayoutDashboard 图标 + 名称（与侧边栏入口同图标，识别性强）
+      React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+        React.createElement("span", { style: { display: "inline-flex", color: "var(--dsw-alias-label-secondary,#666)" } }, icons.lucideIcon("LayoutDashboard", 16)),
+        React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: "var(--dsw-alias-label-primary,#333)" } }, "工作台")
       ),
-      React.createElement("div", { style: { fontSize: 13, color: "var(--dsw-alias-label-secondary,#444)", lineHeight: 1.6 } },
-        "workspaceSidebar侧车插件：全屏 / 左侧 / 右侧 / 底部四种布局，widget 组件注册体系。",
-        React.createElement("br", null),
-        "改动**即时生效并自动保存**（localStorage），无需点保存。"
+      React.createElement("p", { style: { margin: 0, fontSize: 13, color: "var(--dsw-alias-label-secondary,#444)", lineHeight: 1.7 } },
+        "全屏 / 左侧 / 右侧 / 底部四种工作台布局，widget 面板即装即用。"
       ),
-      // 布局配置（框）：布局项 + 重置默认值按钮（不重置插件设置块）
+      // 布局配置卡片：头部 + hairline + 字段 + hairline + 底部操作
       React.createElement("div", { style: boxStyle },
-        React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "var(--dsw-alias-label-primary,#333)" } }, "布局配置"),
+        React.createElement("div", { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" } },
+          React.createElement("span", { style: { fontSize: 13, fontWeight: 600, color: "var(--dsw-alias-label-primary,#333)" } }, "布局配置"),
+          React.createElement("span", { style: { fontSize: 11, color: "var(--dsw-alias-label-tertiary,#999)" } }, "改动即时生效并自动保存")
+        ),
+        React.createElement("div", { style: { height: 1, background: "color-mix(in srgb, var(--dsw-alias-label-secondary) 18%, transparent)" } }),
         SETTINGS_FIELDS.map(function (field) {
+          // 全屏分割线：最上方 + 线框框起；下方用一条分隔线与后续设置隔开
+          if (field.key === "fullscreenDividers") {
+            return React.createElement(React.Fragment, { key: field.key },
+              React.createElement("div", {
+                style: { border: "1.5px dashed color-mix(in srgb, var(--dsw-alias-label-secondary) 35%, transparent)", borderRadius: 8, padding: "8px 10px" }
+              }, layoutRow(field)),
+              React.createElement("div", {
+                style: { height: 1, background: "color-mix(in srgb, var(--dsw-alias-label-secondary) 20%, transparent)" }
+              })
+            );
+          }
           return layoutRow(field);
         }),
-        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginTop: 4 } },
+        // 卡片底：hairline + 重置按钮（常态安静，悬停转红提示危险动作）
+        React.createElement("div", { style: { height: 1, background: "color-mix(in srgb, var(--dsw-alias-label-secondary) 18%, transparent)" } }),
+        React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } },
           React.createElement("button", {
-            onClick: resetLayout,
+            onClick: openResetConfirm,
             onMouseEnter: function () { setResetHover(true); },
             onMouseLeave: function () { setResetHover(false); },
-            style: { border: "1px solid " + (resetHover ? "#fca5a5" : "#fecaca"), borderRadius: 8, padding: "8px 16px", cursor: "pointer", background: resetHover ? "#fee2e2" : "#fef2f2", color: "#dc2626", fontSize: 13, transition: "background .12s, border-color .12s" }
+            style: {
+              display: "inline-flex", alignItems: "center", gap: 6,
+              border: "1px solid " + (resetHover ? "#fca5a5" : "color-mix(in srgb, var(--dsw-alias-label-secondary) 25%, transparent)"),
+              borderRadius: 8, padding: "7px 14px", cursor: "pointer",
+              background: resetHover ? "#fef2f2" : "transparent",
+              color: resetHover ? "#dc2626" : "var(--dsw-alias-label-secondary,#666)",
+              fontSize: 13, transition: "background .12s, border-color .12s, color .12s"
+            }
           }, "重置默认值"),
           notice ? React.createElement("span", { style: { fontSize: 12, color: "#16a34a" } }, notice) : null
         )
       ),
       // 插件设置（L2，独立文件 plugin-settings.tsx：两列卡片 + 手风琴 + 启停 + 声明式字段）
-      React.createElement(PluginSettingsSection, {})
+      React.createElement(PluginSettingsSection, {}),
+      // 重置确认弹窗（portaled 到 body，独立于页面，避免被设置容器裁剪）
+      confirmOpen ? icons.createPortalToBody(
+        React.createElement(React.Fragment, null,
+          React.createElement("div", {
+            onClick: function () { setConfirmOpen(false); },
+            style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }
+          }),
+          React.createElement("div", {
+            role: "dialog",
+            "aria-modal": "true",
+            style: {
+              position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+              background: "var(--dsw-alias-bg-base,#fff)",
+              border: "1.5px solid color-mix(in srgb, var(--dsw-alias-label-secondary) 30%, transparent)",
+              borderRadius: 12, padding: "20px 24px", width: 360, boxSizing: "border-box",
+              boxShadow: "0 12px 40px rgba(0,0,0,.18)", zIndex: 10000,
+              display: "flex", flexDirection: "column", gap: 14, fontFamily: "system-ui, sans-serif"
+            }
+          },
+            React.createElement("div", { style: { fontSize: 14, fontWeight: 600, color: "var(--dsw-alias-label-primary,#333)" } }, "重置工作台设置"),
+            React.createElement("div", { style: { fontSize: 13, color: "var(--dsw-alias-label-secondary,#666)", lineHeight: 1.6 } }, "此操作将把所有设置项恢复为默认值，当前自定义配置会丢失。确定继续吗？"),
+            React.createElement("div", { style: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 4 } },
+              React.createElement("button", {
+                type: "button",
+                onClick: function () { setConfirmOpen(false); },
+                style: { border: "1px solid color-mix(in srgb, var(--dsw-alias-label-secondary) 25%, transparent)", borderRadius: 8, padding: "8px 16px", cursor: "pointer", background: "transparent", color: "var(--dsw-alias-label-secondary,#666)", fontSize: 13 }
+              }, "取消"),
+              React.createElement("button", {
+                type: "button",
+                onClick: doReset,
+                style: { border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", background: "var(--dsw-alias-state-business-primary,#3b82f6)", color: "#fff", fontSize: 13 }
+              }, "确定")
+            )
+          )
+        )
+      ) : null
     );
   }
 

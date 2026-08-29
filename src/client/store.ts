@@ -54,6 +54,7 @@ export function defaultWorkspace(): WorkspaceState {
     dockMaxRatio: 1,
     dividerWidth: 1,
     dividerColor: "",
+    fullscreenDividers: false,
     placement: {},
     disabledWidgets: {},
     splitEnabled: true,
@@ -170,6 +171,9 @@ export function sanitizeWorkspace(parsed: unknown): WorkspaceState {
   }
   if (typeof parsed.dividerColor === "string") {
     out.dividerColor = parsed.dividerColor;
+  }
+  if (typeof parsed.fullscreenDividers === "boolean") {
+    out.fullscreenDividers = parsed.fullscreenDividers;
   }
   out.placement = {};
   if (isPlainObject(parsed.placement)) {
@@ -569,6 +573,11 @@ export function createWorkspaceStore(): WorkspaceStore {
     setDividerColor: function (color) {
       if (state.dividerColor === color) return;
       state = { ...state, dividerColor: color };
+      emit();
+    },
+    setFullscreenDividers: function (on) {
+      if (state.fullscreenDividers === on) return;
+      state = { ...state, fullscreenDividers: on };
       emit();
     },
     getWidgetSettings: function (id) { return pluginSettings[id] ?? EMPTY_SETTINGS; },
