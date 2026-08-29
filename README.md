@@ -41,6 +41,13 @@ pnpm run build
 dsh plugin --profile web add <本插件目录>
 ```
 
+## 查看
+```bash
+dsh plugin --profile web list
+
+dsh plugin --profile desktop list
+```
+
 ## 卸载
 
 ```bash

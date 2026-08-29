@@ -47,7 +47,7 @@ export function createFooterAction(deps: FooterDeps): {
 
     return React.createElement(
       "div",
-      { className: CLS + "-footerAction", style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", gap: 4, flexWrap: "nowrap" } },
+      { className: CLS + "-footerAction", style: { display: "flex", flexDirection: "row", alignItems: "center", width: "100%", gap: 4, flexWrap: "nowrap", justifyContent: wide ? "flex-start" : "center" } },
       React.createElement(
         "button",
         {
@@ -64,10 +64,11 @@ export function createFooterAction(deps: FooterDeps): {
             alignItems: "center",
             gap: 8,
             boxSizing: "border-box",
-            width: wide ? "auto" : "100%",
+            // 折叠态 36×36 正圆（对齐 DSH 原生 rail 图标几何）；宽模式整行 42px 高圆角条
+            width: wide ? "auto" : 36,
             minWidth: 0,
             flex: "0 1 auto",
-            height: 42,
+            height: wide ? 42 : 36,
             border: "none",
             borderRadius: wide ? 12 : "50%",
             // 跟随 dsh 主题：文字用 label 色、激活/hover 用 interactive-bg-hover（浅/深自适应）
