@@ -108,3 +108,9 @@ window.__dshWorkspaceTest__.getState()
 
 > 兼容矩阵统一维护在 [`.skills/workspace-architecture/SKILL.md`](.skills/workspace-architecture/SKILL.md) §2；升级 DeepSeek Harness 需回归槽位与主题 token。
 
+
+## 插件市场
+[参考dsh-workspace-market](https://github.com/c4sparks/dsh-workspace-market.git)
+
+提供了该工作台插件的案例可供参考
+
