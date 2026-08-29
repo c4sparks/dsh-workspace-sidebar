@@ -1,0 +1,14 @@
+# dsh-workspace-sidebar bundle patch: add the workspace main plugin.
+# 本插件不接管 dsh 根布局（不 disable ui-layout），
+# 而是从侧边栏底部入口（sidebar.footer.action）展开覆盖层工作台，因此内置的
+# dsh 侧边栏 / 会话区保持渲染。loader 按 name 解析本包并挂载其默认导出。
+#
+# 防双挂载守卫：聚合 bundle 若已用**其它 id** 挂载了本包
+# （`name === 'dsh-workspace-sidebar'` 且 `id !== 'dsh-workspace-sidebar'` 且未 disabled），
+# 此行自动退让，避免两个 Node 半 / 两个工作台重复注册（重复前缀路由）导致启动失败。
+# loader 按 entry-list 顺序求值（只能看到本行之前的行），聚合包需在本包之前——标准安装
+# 顺序即是如此（`dsh plugin add` 把新 bundle 追加到最后）。
+- insert:
+    - id: dsh-workspace-sidebar
+      name: 'dsh-workspace-sidebar'
+      disabled: !!js "[...ctx.loader.entries()].some((e) => e.options.name === 'dsh-workspace-sidebar' && e.options.id !== 'dsh-workspace-sidebar' && !e.disabled)"

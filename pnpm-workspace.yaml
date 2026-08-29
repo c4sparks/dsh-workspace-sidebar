@@ -1,0 +1,3 @@
+# pnpm workspace config — 放行 esbuild 的构建脚本（下载平台二进制）。
+allowBuilds:
+  esbuild: true

@@ -1,0 +1,53 @@
+{
+  "name": "dsh-workspace-sidebar",
+  "version": "0.1.0",
+  "description": "workspaceSidebar主插件：侧边栏底部入口 + 帧级工作台覆盖层（左/中/右/底区域 + 标签页 + 拖拽调宽 + 预设），第三方插件可 registerWidget 注册组件。",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "cordis": {
+    "name": "dsh-workspace-sidebar",
+    "version": "0.1.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "packageManager": "pnpm@11.24.0",
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "allotment": "^1.20.5",
+    "react-dom": "^19.2.8",
+    "scheduler": "^0.27.0"
+  }
+}
