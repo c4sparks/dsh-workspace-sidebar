@@ -12,7 +12,7 @@
  */
 import {
   BOTTOM_MAX_FRACTION, BOTTOM_MODE_DEFAULT, BOTTOM_MODE_MAX, BOTTOM_MODE_MIN, BOTTOM_MIN,
-  DOCK_DEFAULT, DOCK_MAX, DOCK_MIN, LEFT_DEFAULT, LEFT_MAX, LEFT_MIN,
+  DOCK_DEFAULT, DOCK_MAX, DOCK_MIN, LEFT_MAX, LEFT_MIN,
   MODES, PERSIST_DEBOUNCE_MS, PRESETS,
   REGION_BOTTOM_MAX, RIGHT_MAX, RIGHT_MIN, WIDGET_SETTINGS_KEY, WS_KEY
 } from "./constants";
@@ -47,7 +47,9 @@ export function defaultWorkspace(): WorkspaceState {
     panels: emptyPanels(),
     multiPanel: false,
     preset: "workbench",
-    regionSizes: { left: LEFT_DEFAULT, right: 0, bottom: 0 },
+    // 与 preset: "workbench" 对齐（右/下区域默认可见）；setPreset 落到同一组值，
+    // 避免默认 preset 与默认区域尺寸不一致导致右/下区域首屏隐藏。
+    regionSizes: { ...PRESETS.workbench.regionSizes },
     leftW: DOCK_DEFAULT,
     rightW: DOCK_DEFAULT,
     bottomH: BOTTOM_MODE_DEFAULT,

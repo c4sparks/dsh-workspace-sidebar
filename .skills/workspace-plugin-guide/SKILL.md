@@ -42,7 +42,8 @@ export function createPlugin(deps) {
 }
 ```
 
-- 装进 web profile 后，工作台侧边栏底部出现「我的面板」入口；点开即可在 center 区域看到标签 + 内容。
+- 装进 web profile 后，工作台 TabBar 点「+」即可在 center 区域打开「我的面板」标签并看到内容
+  （注册不会自动开标签，一律由用户显式打开）。
 - **完整参考实现**：`dsh-workspace-market/dsh-workspace-terminal`（多开 `multi:true`、
   声明式设置 `settings`、主题跟随、懒加载——看它的 `src/client/plugin.ts`）。
 

@@ -60,7 +60,7 @@ export function createSplitPane(deps: SplitPaneDeps): SplitPaneApi {
     const overlay = zone !== null ? React.createElement("div", { style: dropOverlayStyle(zone) }) : null;
     return React.createElement(
       "div",
-      { ref: setNodeRef, "data-dnd-pane": props.paneId, style: { position: "relative", flex: 1, height: "100%", minHeight: 0, minWidth: 0, display: "flex", flexDirection: props.vertical === true ? "row" : "column" } },
+      { ref: setNodeRef, "data-dnd-pane": props.paneId, "data-dnd-mode": props.mode, "data-dnd-region": props.region, style: { position: "relative", flex: 1, height: "100%", minHeight: 0, minWidth: 0, display: "flex", flexDirection: props.vertical === true ? "row" : "column" } },
       props.children,
       overlay
     );
@@ -79,7 +79,9 @@ export function createSplitPane(deps: SplitPaneDeps): SplitPaneApi {
     }, DROP_HINT_TEXT[d.zone]);
   }
 
-  /** allotment 样式一次性注入（+ 分割线光标/颜色统一为 --dsws-divider-*，与区域手柄一致）。 */
+  /** allotment 样式一次性注入（+ 分割线光标/颜色/粗细统一为 --dsws-divider-*，与区域手柄一致）。
+   *  allotment 默认可见线 4px（--sash-hover-size），区域手柄是 --dsws-divider-width（1px）；
+   *  这里把热区收敛为 6px、可见线跟随 dividerWidth，避免分屏分割线明显偏粗。 */
   let allotmentCssInjected = false;
   function ensureAllotmentCss(): void {
     if (allotmentCssInjected) return;
@@ -87,6 +89,9 @@ export function createSplitPane(deps: SplitPaneDeps): SplitPaneApi {
     const tag = document.createElement("style");
     tag.dataset.plugin = "dsh-workspace-sidebar";
     tag.textContent = allotmentCss + [
+      // max(1px, ...) 兜底：全屏「单画布」模式 overlay 把 --dsws-divider-width 置 0px（隐藏区域分割线），
+      // 但分屏 sash 仍要可见细线 —— 用 max 保证至少 1px，dividerWidth≥1 时跟随设置。
+      ".split-view .sash{--sash-size:6px;--sash-hover-size:max(1px,var(--dsws-divider-width,1px))}",
       ".split-view .sash-vertical{cursor:col-resize}",
       ".split-view .sash-horizontal{cursor:row-resize}",
       ".split-view .sash::before{background:var(--dsws-divider-color,rgba(0,0,0,.12))}",

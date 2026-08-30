@@ -51,7 +51,9 @@ export const DROP_HINT_TEXT: Record<DropZoneKind, string> = {
 };
 
 // ---- 共享拖拽状态（由 dnd-kit onDragOver/onDragEnd 写入 / 读取）----
-type DropState = { paneId: string; zone: DropZoneKind; x: number; y: number };
+/** 吸附区状态：落点面板 + 方向 + 指针坐标 + 目标面板的 mode/region（应用落点必需）。
+ *  mode/region 由 PaneDropTarget 的 data-dnd-* 携带，over=null（落在分隔条间隙）时也能定位。 */
+export type DropState = { paneId: string; zone: DropZoneKind; x: number; y: number; mode: Mode; region: Region };
 let activeDrop: DropState | null = null;
 const dropListeners = new Set<() => void>();
 
@@ -66,6 +68,40 @@ export function subscribeDrop(fn: () => void): () => void {
 /** 清除当前拖拽吸附区（拖拽结束 / 取消时用）。 */
 export function clearDrop(): void { setActiveDrop(null); }
 export function getActiveDrop(): DropState | null { return activeDrop; }
+
+/** 分隔条（sash）间隙 / 面板外的吸附容差（px）：指针距某面板边缘此距离内 → 视为拖到该边缘（拆分）。 */
+const SASH_SNAP = 16;
+
+/**
+ * 指针落在分隔条（sash）间隙 / 面板外时，吸附到**最近面板的边缘**并给出拆分方向（push），
+ * 而不是沿用旧吸附区（旧 center 落点 = 移入 = 覆盖）。mode/region 从 DOM 的 data-dnd-* 读；
+ * 距所有面板都超过 SASH_SNAP 返回 null（真越界，放弃）。
+ */
+export function snapToPaneEdge(x: number, y: number): DropState | null {
+  const nodes = document.querySelectorAll<HTMLElement>("[data-dnd-pane]");
+  let best: { el: HTMLElement; r: RectLike; d: number } | null = null;
+  for (const el of Array.from(nodes)) {
+    const r = el.getBoundingClientRect();
+    const rect: RectLike = { left: r.left, top: r.top, width: r.width, height: r.height };
+    const dx = x < rect.left ? rect.left - x : x > rect.left + rect.width ? x - (rect.left + rect.width) : 0;
+    const dy = y < rect.top ? rect.top - y : y > rect.top + rect.height ? y - (rect.top + rect.height) : 0;
+    const d = Math.hypot(dx, dy);
+    if (d > SASH_SNAP) continue;
+    if (best === null || d < best.d) best = { el: el, r: rect, d: d };
+  }
+  if (best === null) return null;
+  const paneId = best.el.getAttribute("data-dnd-pane") ?? "";
+  if (paneId === "") return null;
+  const mode = (best.el.getAttribute("data-dnd-mode") ?? "fullscreen") as Mode;
+  const region = (best.el.getAttribute("data-dnd-region") ?? "center") as Region;
+  // 指针在矩形外（over=null 场景），方向取指针相对矩形的位置，不会是 center
+  let zone: DropZoneKind;
+  if (x < best.r.left) zone = "left";
+  else if (x >= best.r.left + best.r.width) zone = "right";
+  else if (y < best.r.top) zone = "up";
+  else zone = "down";
+  return { paneId: paneId, zone: zone, x: x, y: y, mode: mode, region: region };
+}
 
 /**
  * 落点生效：按当前拖拽的落点（`drop`：来自 dnd-kit onDragEnd 的 over + zone）

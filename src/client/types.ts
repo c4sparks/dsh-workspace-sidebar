@@ -232,7 +232,8 @@ export interface WorkspaceService {
   /** 布局控制面（store 直通；新增布局字段走这里）。 */
   readonly layout: LayoutControl;
   /** 注册 widget；重复 id 告警并忽略（返回 no-op disposer）；正常返回幂等 disposer（cordis 在 fiber 卸载时自动调用）。
-   *  首次注册（该 id 从未出现过）→ 建默认 tab 实例；已注册过（含被关闭的）→ 不动 tab，保持关闭/打开状态。 */
+   *  首次注册仅记录 placement 意图，**不自动开 tab 实例**——widget 一律由用户在工作台点「+」打开；
+   *  重复注册 / 已注册过 → 不动任何 tab。 */
   registerWidget(desc: WidgetDescriptor): () => void;
   /** 卸载 widget；不存在则 no-op；被卸载 widget 的激活实例顺位提升。已打开的实例不自动删除（HMR 安全）。 */
   unregisterWidget(id: string): void;
@@ -244,7 +245,7 @@ export interface WorkspaceService {
   isWidgetDisabled(id: string): boolean;
   /**
    * 打开（或聚焦）某 widget 的 tab 实例（面板 `opts.mode`，默认当前打开面板）：
-   * - 单实例（默认）：该面板已有实例 → 聚焦；否则补建（每面板至多一个）。
+   * - 每面板单实例（默认）：该面板已有实例 → 聚焦；否则补建（每面板至多一个）。
    * - 多实例（`multi:true`）：总是新建一个实例 tab。
    * 返回实例 id（未注册的 widget 返回 undefined）。
    */

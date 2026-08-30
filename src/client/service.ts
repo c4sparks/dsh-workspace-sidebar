@@ -117,8 +117,22 @@ export function createWorkspaceService(registry: WidgetRegistry, store: Workspac
     if (desc.multi !== true) {
       const existing = openInstancesInMode(widgetId, mode)[0];
       if (existing) {
-        const paneId = store.getPaneForInstance(existing.id) ?? opts?.paneId ?? region + ":main";
-        store.addTabToPane(mode, paneId, { id: existing.id, widgetId: widgetId });
+        if (opts?.region !== undefined || opts?.paneId !== undefined) {
+          // 显式请求目标（TabBar「+」等主动打开）：实例已在别处 → 移动过去再聚焦。
+          // 否则单实例会卡在不可见 pane（如全屏单画布下 right/bottom），点开无反应。
+          // 目标 pane 与新建分支同口径：区域有分屏时取第一个叶子 pane。
+          const wantPaneId = opts?.paneId ?? (m.splits[region] ? (leavesOfSplit(m.splits, region)[0] ?? region + ":main") : region + ":main");
+          const curPaneId = store.getPaneForInstance(existing.id);
+          if (curPaneId !== undefined && curPaneId !== wantPaneId) {
+            store.moveTabToPane(mode, existing.id, wantPaneId);
+          } else {
+            store.addTabToPane(mode, wantPaneId, { id: existing.id, widgetId: widgetId });
+          }
+        } else {
+          // 无显式目标（程序化 openWidget，如第三方直接调用）：保持原聚焦行为
+          const paneId = store.getPaneForInstance(existing.id) ?? region + ":main";
+          store.addTabToPane(mode, paneId, { id: existing.id, widgetId: widgetId });
+        }
         return existing.id;
       }
     }
@@ -135,9 +149,10 @@ export function createWorkspaceService(registry: WidgetRegistry, store: Workspac
       const dispose = registry.register(desc);
       const st = store.getState();
       if (st.placement[desc.id] === undefined) {
-        // 首次注册：记 placement 意图 + 在缺省面板建默认实例（已关闭的 widget 不重开，保持关闭）
+        // 首次注册：仅记 placement 意图（默认打开区域），不自动开实例。
+        // widget 一律由用户在工作台 TabBar 点「+」显式打开——全屏单画布下非 center
+        // 区域不可见，自动开会把单实例卡在不可见 pane（点开无反应）。
         store.setPlacement(desc.id, desc.region ?? "center");
-        openWidget(desc.id);
       }
       return dispose;
     },

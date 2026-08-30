@@ -12,7 +12,8 @@
  * 关键点：
  *  - 拖拽中指针实时坐标用 window pointermove 跟踪（dnd-kit 事件不带 clientX/Y，
  *    吸附区 zone 需要原始坐标）。
- *  - 越界 / 落在分隔条（sash）上（over=null）时**保留上一吸附区**，仅跟随指针（边缘盲区修复）。
+ *  - 越界 / 落在分隔条（sash）间隙（over=null）时，**吸附到最近面板边缘给出拆分方向**（push），
+ *    而不是沿用旧吸附区（旧 center 落点 = 移入 = 覆盖）；真越界（距所有面板 > SASH_SNAP）则清空。
  */
 import type * as ReactTypes from "react";
 import {
@@ -28,7 +29,7 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { setActiveDrop, clearDrop, getActiveDrop, applyDrop, zoneAt, type RectLike } from "./tab-drag";
+import { setActiveDrop, clearDrop, getActiveDrop, applyDrop, zoneAt, snapToPaneEdge, type RectLike } from "./tab-drag";
 import type { WorkspaceService, Mode, Region } from "./types";
 import type { Icons } from "./icons";
 
@@ -93,47 +94,43 @@ export function createDndWorkspace(deps: DndWorkspaceDeps): DndWorkspaceApi {
     function onDragMove(e: DragMoveEvent) {
       const over = e.over;
       if (over !== null && String(over.id) !== String(e.active.id)) {
-        const data = (over.data.current ?? {}) as { kind?: string; paneId?: string; instanceId?: string };
+        const data = (over.data.current ?? {}) as { kind?: string; paneId?: string; instanceId?: string; mode?: Mode; region?: Region };
         if (data.kind === "tab") {
           // 指针在标签上：显示所在面板中心覆盖层示意；落点动作（重排）在 onDragEnd 处理
-          setActiveDrop({ paneId: data.paneId ?? String(over.id), zone: "center", x: lastPointer.x, y: lastPointer.y });
+          setActiveDrop({ paneId: data.paneId ?? String(over.id), zone: "center", x: lastPointer.x, y: lastPointer.y, mode: "fullscreen", region: "center" });
         } else {
           const r = over.rect;
           const rect: RectLike = { left: r.left, top: r.top, width: r.width, height: r.height };
-          setActiveDrop({ paneId: String(over.id), zone: zoneAt(lastPointer.x, lastPointer.y, rect), x: lastPointer.x, y: lastPointer.y });
+          setActiveDrop({ paneId: String(over.id), zone: zoneAt(lastPointer.x, lastPointer.y, rect), x: lastPointer.x, y: lastPointer.y, mode: data.mode ?? "fullscreen", region: data.region ?? "center" });
         }
       } else {
-        // 越界 / 落在分隔条（sash）上 / 拖拽自身：保留上一吸附区，仅跟随指针（边缘盲区修复）
-        const cur = getActiveDrop();
-        if (cur) setActiveDrop({ ...cur, x: lastPointer.x, y: lastPointer.y });
+        // 分隔条（sash）间隙 / 越界 / 拖拽自身：吸附到最近面板边缘 → 拆分（push），
+        // 不再沿用旧吸附区（旧 center 落点 = 移入 = 覆盖）。真越界（> SASH_SNAP）则清空。
+        const snap = snapToPaneEdge(lastPointer.x, lastPointer.y);
+        if (snap !== null) setActiveDrop(snap);
         else setActiveDrop(null);
       }
     }
     function onDragEnd(e: DragEndEvent) {
       const info = dragInfoRef.current;
       const over = e.over;
-      if (info !== null && over !== null && String(over.id) !== info.instanceId) {
-        const data = (over.data.current ?? {}) as { kind?: string; instanceId?: string; mode?: Mode; region?: Region };
-        if (data.kind === "tab") {
+      const drop = getActiveDrop();
+      if (info !== null && drop !== null) {
+        const data = (over?.data.current ?? {}) as { kind?: string; instanceId?: string };
+        if (data.kind === "tab" && over !== null && String(over.id) !== info.instanceId) {
           // 拖到标签上 → 插到该标签前（重排 / 跨 pane 移入）
           service.insertTabBefore(info.instanceId, data.instanceId ?? String(over.id));
-          clearDrop();
-        } else {
-          const d = getActiveDrop();
-          if (d !== null) {
-            applyDrop(service, info.instanceId, {
-              paneId: String(over.id),
-              zone: d.zone,
-              mode: data.mode ?? "fullscreen",
-              region: data.region ?? "center",
-            });
-          } else {
-            clearDrop();
-          }
+        } else if (over === null || String(over.id) !== info.instanceId) {
+          // 落点在面板（zone 来自 onDragMove）或分隔条间隙（over=null，drop 来自吸附）→ 拆分 / 移入
+          applyDrop(service, info.instanceId, {
+            paneId: drop.paneId,
+            zone: drop.zone,
+            mode: drop.mode,
+            region: drop.region,
+          });
         }
-      } else {
-        clearDrop();
       }
+      clearDrop();
       setDragInfo(null);
     }
     function onDragCancel() {
