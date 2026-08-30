@@ -55,6 +55,7 @@ export function defaultWorkspace(): WorkspaceState {
     dividerWidth: 1,
     dividerColor: "",
     fullscreenDividers: false,
+    verticalTabs: false,
     placement: {},
     disabledWidgets: {},
     splitEnabled: true,
@@ -174,6 +175,9 @@ export function sanitizeWorkspace(parsed: unknown): WorkspaceState {
   }
   if (typeof parsed.fullscreenDividers === "boolean") {
     out.fullscreenDividers = parsed.fullscreenDividers;
+  }
+  if (typeof parsed.verticalTabs === "boolean") {
+    out.verticalTabs = parsed.verticalTabs;
   }
   out.placement = {};
   if (isPlainObject(parsed.placement)) {
@@ -578,6 +582,11 @@ export function createWorkspaceStore(): WorkspaceStore {
     setFullscreenDividers: function (on) {
       if (state.fullscreenDividers === on) return;
       state = { ...state, fullscreenDividers: on };
+      emit();
+    },
+    setVerticalTabs: function (on) {
+      if (state.verticalTabs === on) return;
+      state = { ...state, verticalTabs: on };
       emit();
     },
     getWidgetSettings: function (id) { return pluginSettings[id] ?? EMPTY_SETTINGS; },

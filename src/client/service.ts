@@ -230,6 +230,7 @@ export function createWorkspaceService(registry: WidgetRegistry, store: Workspac
     setDividerWidth: function (px) { store.setDividerWidth(px); },
     setDividerColor: function (color) { store.setDividerColor(color); },
     setFullscreenDividers: function (on) { store.setFullscreenDividers(on); },
+    setVerticalTabs: function (on) { store.setVerticalTabs(on); },
     getWidgetSettings: function (id) { return store.getWidgetSettings(id); },
     setWidgetSettings: function (id, patch) { store.setWidgetSettings(id, patch); },
     resetWidgetSettings: function (id) { store.resetWidgetSettings(id); },

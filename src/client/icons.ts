@@ -64,6 +64,16 @@ export function createIcons(React: typeof ReactTypes): Icons {
     ],
     chevronUp: [
       { tag: "path", attrs: { d: "m18 15-6-6-6 6" } }
+    ],
+    GalleryHorizontal: [
+      { tag: "path", attrs: { d: "M2 3v18" } },
+      { tag: "rect", attrs: { x: 6, y: 3, width: 12, height: 18, rx: 2 } },
+      { tag: "path", attrs: { d: "M22 3v18" } }
+    ],
+    GalleryVertical: [
+      { tag: "path", attrs: { d: "M3 2h18" } },
+      { tag: "rect", attrs: { x: 3, y: 6, width: 18, height: 12, rx: 2 } },
+      { tag: "path", attrs: { d: "M3 22h18" } }
     ]
   };
   function lucideIcon(name: keyof typeof LUCIDE_ICONS, size: number): ReactTypes.ReactNode {

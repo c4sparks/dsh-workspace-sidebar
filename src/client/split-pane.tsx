@@ -27,7 +27,7 @@ export interface SplitPaneDeps {
 
 export interface SplitPaneApi {
   SplitRegion: (props: SplitRegionProps) => ReactTypes.ReactNode;
-  PaneDropTarget: (props: { mode: Mode; region: Region; paneId: string; children: ReactTypes.ReactNode }) => ReactTypes.ReactNode;
+  PaneDropTarget: (props: { mode: Mode; region: Region; paneId: string; vertical?: boolean; children: ReactTypes.ReactNode }) => ReactTypes.ReactNode;
   DragHint: () => ReactTypes.ReactNode;
 }
 
@@ -48,7 +48,7 @@ export function createSplitPane(deps: SplitPaneDeps): SplitPaneApi {
    * 面板放置目标：dnd-kit droppable（id=paneId，data={mode,region}）；
    * 当它是当前拖拽目标时显示吸附区覆盖层。
    */
-  function PaneDropTarget(props: { mode: Mode; region: Region; paneId: string; children: ReactTypes.ReactNode }): ReactTypes.ReactNode {
+  function PaneDropTarget(props: { mode: Mode; region: Region; paneId: string; vertical?: boolean; children: ReactTypes.ReactNode }): ReactTypes.ReactNode {
     // dnd-kit droppable：pane 是 tab 拖拽的落点（onDragMove 经 pointerWithin 命中 → zoneAt 算 zone）
     const { setNodeRef } = useDroppable({ id: props.paneId, data: { kind: "pane", mode: props.mode, region: props.region } });
     const [, setTick] = React.useState(0);
@@ -60,7 +60,7 @@ export function createSplitPane(deps: SplitPaneDeps): SplitPaneApi {
     const overlay = zone !== null ? React.createElement("div", { style: dropOverlayStyle(zone) }) : null;
     return React.createElement(
       "div",
-      { ref: setNodeRef, "data-dnd-pane": props.paneId, style: { position: "relative", flex: 1, height: "100%", minHeight: 0, minWidth: 0, display: "flex", flexDirection: "column" } },
+      { ref: setNodeRef, "data-dnd-pane": props.paneId, style: { position: "relative", flex: 1, height: "100%", minHeight: 0, minWidth: 0, display: "flex", flexDirection: props.vertical === true ? "row" : "column" } },
       props.children,
       overlay
     );

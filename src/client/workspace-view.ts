@@ -13,7 +13,7 @@ import type { Icons } from "./icons";
 import { applyPushLayout } from "./push-layout";
 import { createSplitPane } from "./split-pane";
 import { createDndWorkspace } from "./dnd";
-import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { SortableContext, horizontalListSortingStrategy, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import type { Mode, ModeState, PaneState, PanelsState, Region, TabItem, WidgetComponent, WidgetDescriptor, WorkspaceState, WorkspaceService } from "./types";
 
 export interface WorkspaceViewDeps {
@@ -55,6 +55,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
     active: boolean;
     label: string;
     paneId: string;
+    vertical?: boolean;
     onSelect: (instanceId: string) => void;
     onCloseTab: (instanceId: string) => void;
   }): React.ReactNode {
@@ -73,7 +74,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
         className: CLS + "-tab" + (props.active ? " " + CLS + "-tabActive" : ""),
         "data-tab": props.item.id,
         title: props.label,
-        style: isDragging ? { opacity: 0.4 } : undefined,
+        style: isDragging ? { opacity: 0.4 } : (props.vertical === true ? { borderRadius: 6, width: "100%", justifyContent: "flex-start" } : undefined),
         onClick: function () { props.onSelect(props.item.id); }
       },
       React.createElement("span", { className: CLS + "-tabIcon" }, icons.resolveNode(props.item.desc.icon, 14) ?? "\u{1F9E9}"),
@@ -93,11 +94,14 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
     active: string | null;
     region: Region;
     paneId: string;
+    vertical?: boolean;
     onSelect: (instanceId: string) => void;
     onCloseTab: (instanceId: string) => void;
     onOpenWidget: (widgetId: string, region: Region, paneId: string) => void;
     widgets: readonly WidgetDescriptor[];
   }): React.ReactNode {
+    const vertical = props.vertical === true;
+    const showLayoutToggle = props.vertical !== undefined;
     // widget 选择弹层（「+」按钮）：portaled 到 body（避开 tabbar overflow 裁剪），
     // fixed 定位锚在按钮下方 + 全屏 backdrop（z 高于覆盖层，始终可见可点）
     const pickerState = React.useState(false);
@@ -121,12 +125,12 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
       null,
       React.createElement(
         "div",
-        { className: CLS + "-tabbar" },
+        { className: CLS + "-tabbar", style: vertical ? { flexDirection: "column", height: "100%", width: 176, flex: "0 0 auto", overflowX: "hidden", overflowY: "auto", borderBottom: "none", borderRight: "1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.08))", alignItems: "stretch", padding: "6px", gap: 2 } : undefined },
         React.createElement(
           SortableContext,
           {
             items: props.items.map(function (t) { return t.id; }),
-            strategy: horizontalListSortingStrategy,
+            strategy: vertical ? verticalListSortingStrategy : horizontalListSortingStrategy,
             children: props.items.map(function (t) {
             const base = typeof t.desc.title === "function" ? t.desc.title() : t.desc.title;
             // 多开实例编号**稳定**（跨 pane/面板不因拖走重排）：实例 id 推导
@@ -143,6 +147,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
                 active: t.id === props.active,
                 label: label,
                 paneId: props.paneId,
+                vertical: vertical,
                 onSelect: props.onSelect,
                 onCloseTab: props.onCloseTab
               });
@@ -156,8 +161,19 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
           ref: addBtnRef,
           disabled: available.length === 0,
           onClick: function () { if (available.length === 0) return; pickerOpen ? closePicker() : openPicker(); },
-          style: available.length === 0 ? { opacity: 0.35, cursor: "not-allowed" } : undefined
+          style: vertical
+            ? { ...(available.length === 0 ? { opacity: 0.35, cursor: "not-allowed" } : {}), alignSelf: "flex-start", marginTop: 2 }
+            : (available.length === 0 ? { opacity: 0.35, cursor: "not-allowed" } : undefined)
         }, "+"),
+        // 布局切换：横向顶部标签 ↔ 纵向左侧菜单（仅全屏中心区显示）
+        showLayoutToggle ? React.createElement("button", {
+          type: "button",
+          className: CLS + "-tabAdd",
+          title: vertical ? "切换为横向标签" : "切换为纵向菜单",
+          "aria-label": vertical ? "切换为横向标签" : "切换为纵向菜单",
+          onClick: function () { service.layout.setVerticalTabs(!vertical); },
+          style: vertical ? { alignSelf: "flex-start", marginTop: 2 } : undefined
+        }, vertical ? icons.lucideIcon("GalleryVertical", 14) : icons.lucideIcon("GalleryHorizontal", 14)) : null,
         pickerOpen ? icons.createPortalToBody(
           React.createElement(
             React.Fragment,
@@ -269,6 +285,11 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
     chrome: boolean;
   }): React.ReactNode {
     const region = props.region;
+    // 纵向 tab 菜单仅用于「单画布大屏」的中心区（全屏分割线关闭时）。开启分割线 = 多区域布局，
+    // 各区域保持横向 tab：不显示切换按钮、也不受 verticalTabs 干扰。
+    const singleCanvas = props.mode === "fullscreen" && props.region === "center" && props.state.fullscreenDividers === false;
+    const vertical = singleCanvas && props.state.verticalTabs === true;
+    const verticalProp = singleCanvas ? vertical : undefined;
     // 注册表用稳定的缓存数组（getWidgets）；pane 来自 state（useSyncExternalStore 订阅快照）
     const widgets = useSyncExternalStore(service.subscribe, function () { return service.getWidgets(); });
     const pane = msOf(props.state, props.mode).panes[region + ":main"];
@@ -290,6 +311,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
             mode: props.mode,
             region: region,
             paneId: region + ":main",
+            vertical: verticalProp,
             children: React.createElement(
               React.Fragment,
               null,
@@ -298,6 +320,7 @@ export function createWorkspaceView(deps: WorkspaceViewDeps): {
                 active: active,
                 region: region,
                 paneId: region + ":main",
+                vertical: verticalProp,
                 onSelect: function (id) { service.setActiveWidget(region, id, props.mode); },
                 onCloseTab: function (id) { service.closeTab(id); },
                 onOpenWidget: function (wid, r, paneId) { service.openWidget(wid, { mode: props.mode, region: r, paneId: paneId }); },

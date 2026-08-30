@@ -136,6 +136,8 @@ export interface WorkspaceState {
   dividerColor: string;
   /** 全屏（大屏）页面是否显示区域分割线（默认 false = 无可见分割线；停靠面板不受影响）。 */
   fullscreenDividers: boolean;
+  /** 全屏中心区 tab 是否纵向排列（左侧菜单布局；默认 false = 横向顶部标签）。 */
+  verticalTabs: boolean;
   /** widget id → 全屏区域意图；共享（只有全屏有区域）。 */
   placement: Record<string, Region>;
   /** 被禁用的 widget（`+` 选择列表隐藏；持久化）。 */
@@ -212,6 +214,8 @@ export interface LayoutControl {
   setDividerColor(color: string): void;
   /** 全屏页面是否显示区域分割线（false = 不显示；停靠面板不受影响）。 */
   setFullscreenDividers(on: boolean): void;
+  /** 全屏中心区 tab 纵向排列开关。 */
+  setVerticalTabs(on: boolean): void;
   /** 重置布局：内存恢复默认 + 清除 localStorage（同步，不依赖 reload）。 */
   reset(): void;
   flushSave(): void;
@@ -285,6 +289,8 @@ export interface WorkspaceService {
   setDividerColor(color: string): void;
   /** 全屏页面是否显示区域分割线（false = 不显示；停靠面板不受影响）。 */
   setFullscreenDividers(on: boolean): void;
+  /** 全屏中心区 tab 纵向排列开关。 */
+  setVerticalTabs(on: boolean): void;
   // ---- 分屏（见 docs/分屏设计.md；均作用于指定面板 mode）----
   /** 读某面板各区域分屏树（未拆分的区域无条目）。 */
   getSplits(mode?: Mode): Readonly<Partial<Record<Region, SplitNode>>>;
